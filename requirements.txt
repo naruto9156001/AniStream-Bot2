@@ -1,4 +1,10 @@
 fastapi
-uvicorn
+uvicorn[standard]
 pymongo
 python-dotenv
+requests
+beautifulsoup4
+lxml
+dnspython
+certifi
+tmdbv3api
