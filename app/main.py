@@ -79,7 +79,7 @@ app.include_router(series_router)
 app.include_router(episodes_router)
 app.include_router(search_router)
 app.include_router(progress_router)
-
+app.include_router(upload_router)
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
