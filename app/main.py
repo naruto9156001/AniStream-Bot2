@@ -1,5 +1,7 @@
 from contextlib import asynccontextmanager
-from app.api.upload import router as upload_router
+import asyncio
+from datetime import datetime
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -11,6 +13,9 @@ from app.api.series import router as series_router
 from app.api.episodes import router as episodes_router
 from app.api.search import router as search_router
 from app.api.progress import router as progress_router
+from app.api.upload import router as upload_router
+
+from app.scraper.runner import run_full_scrape
 
 
 @asynccontextmanager
@@ -20,16 +25,32 @@ async def lifespan(app: FastAPI):
     print("=" * 60)
 
     init_database()
-
     print("✅ MongoDB Connected")
     print("✅ Backend Ready")
+
+    # Start background scraper
+    asyncio.create_task(background_scraper())
+
     print("=" * 60)
-
     yield
-
     print("=" * 60)
     print("🛑 Backend Stopped")
     print("=" * 60)
+
+
+async def background_scraper():
+    """Background scraper - configurable interval"""
+    interval_minutes = int(os.getenv("BG_PROCESS_DURATION", 60))  # Default 60 minutes
+    interval_seconds = interval_minutes * 60
+
+    while True:
+        try:
+            print(f"🔄 Auto Scraper started at {datetime.utcnow()} (every {interval_minutes} min)")
+            run_full_scrape()
+            print("✅ Auto Scraper completed")
+        except Exception as e:
+            print(f"❌ Scraper error: {e}")
+        await asyncio.sleep(interval_seconds)
 
 
 app = FastAPI(
