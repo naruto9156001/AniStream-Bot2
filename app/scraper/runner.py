@@ -3,36 +3,53 @@ from app.scraper.parser import parse_series_list, parse_series_details, parse_ep
 from app.database import series, episodes
 import logging
 import time
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 client = AnimeSaltClient()
 
 def run_full_scrape():
-    logger.info("🚀 Starting Full Scrape...")
+    logger.info("🚀 Starting Full AnimeSalt Scrape...")
+    start_time = datetime.utcnow()
 
-    # Homepage scrape
+    # Homepage se series list
     soup = client.get(client.base_url)
     if not soup:
+        logger.error("Failed to fetch homepage")
         return
 
     anime_list = parse_series_list(soup)
-    logger.info(f"Found {len(anime_list)} anime")
+    logger.info(f"Found {len(anime_list)} anime on homepage")
 
-    for anime in anime_list[:30]:  # Limit for first run
+    saved_series = 0
+    saved_episodes = 0
+
+    for anime in anime_list[:40]:   # Adjust limit as needed
         slug = anime['slug']
-        
-        # Check if already exists
+
+        # Agar already exist karta hai toh skip
         if series.find_one({"slug": slug}):
-            logger.info(f"Skipping {slug} - already exists")
+            logger.info(f"⏭️ Skipping {slug} - already exists")
             continue
 
-        # Get full details
+        # Series details page
         detail_soup = client.get(anime['url'])
-        if detail_soup:
-            details = parse_series_details(detail_soup, slug)
-            series.insert_one(details)
-            logger.info(f"Saved series: {details['title']}")
+        if not detail_soup:
+            continue
 
-        time.sleep(2)
+        # Save series
+        details = parse_series_details(detail_soup, slug)
+        series.insert_one(details)
+        saved_series += 1
+        logger.info(f"✅ Saved Series: {details['title']}")
 
-    logger.info("✅ Scrape completed!")
+        # Save episodes
+        episode_list = parse_episodes(detail_soup, slug)
+        if episode_list:
+            episodes.insert_many(episode_list)
+            saved_episodes += len(episode_list)
+            logger.info(f"   → Saved {len(episode_list)} episodes")
+
+        time.sleep(3)  # Be gentle on server
+
+    logger.info(f"🎉 Scrape Completed! Series: {saved_series} | Episodes: {saved_episodes} | Time: {datetime.utcnow() - start_time}")
