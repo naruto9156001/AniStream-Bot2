@@ -1,5 +1,5 @@
 from contextlib import asynccontextmanager
-
+from app.api.upload import router as upload_router
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
