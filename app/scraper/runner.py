@@ -8,8 +8,8 @@ from datetime import datetime
 logger = logging.getLogger(__name__)
 client = AnimeSaltClient()
 
-def run_full_crawl():
-    logger.info("🚀 Starting FULL AnimeSalt Crawl...")
+def run_full_scrape():
+    logger.info("🚀 Starting Full AnimeSalt Scrape...")
     start_time = datetime.utcnow()
 
     page = 1
@@ -39,25 +39,23 @@ def run_full_crawl():
             if not detail_soup:
                 continue
 
-            # Save series
             details = parse_series_details(detail_soup, slug)
             series.insert_one(details)
             total_saved += 1
             logger.info(f"✅ Saved: {details['title']}")
 
-            # Save episodes
             episode_list = parse_episodes(detail_soup, slug)
             if episode_list:
                 episodes.insert_many(episode_list)
-                logger.info(f"   → {len(episode_list)} episodes saved")
+                logger.info(f"   → {len(episode_list)} episodes")
 
-            time.sleep(3)  # Polite delay
+            time.sleep(3)
 
         page += 1
         time.sleep(5)
 
-    logger.info(f"🎉 Full Crawl Completed! Total Series Saved: {total_saved}")
-    logger.info(f"Total Time: {datetime.utcnow() - start_time}")
+    logger.info(f"🎉 Full Crawl Completed! Total Series: {total_saved}")
+    logger.info(f"Time Taken: {datetime.utcnow() - start_time}")
 
 if __name__ == "__main__":
-    run_full_crawl()
+    run_full_scrape()
