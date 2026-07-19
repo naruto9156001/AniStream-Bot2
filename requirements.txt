@@ -8,3 +8,4 @@ lxml
 dnspython
 certifi
 tmdbv3api
+python-multipart
