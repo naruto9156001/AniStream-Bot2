@@ -1,61 +1,25 @@
-from app.scraper.client import AnimeSaltClient
-from app.scraper.parser import parse_series_list, parse_series_details, parse_episodes
-from app.database import series, episodes
-import logging
-import time
-from datetime import datetime
+from .animesalt import AnimesaltScraper
 
-logger = logging.getLogger(__name__)
-client = AnimeSaltClient()
-
-def run_full_scrape():
-    logger.info("🚀 Starting Full AnimeSalt Scrape...")
-    start_time = datetime.utcnow()
-
-    page = 1
-    total_saved = 0
-
-    while True:
-        logger.info(f"Scraping page {page}...")
-        soup = client.get(f"{client.base_url}/?page={page}")
-        
-        if not soup:
-            break
-
-        anime_list = parse_series_list(soup)
-        if not anime_list:
-            logger.info("No more anime found.")
-            break
-
-        logger.info(f"Page {page}: Found {len(anime_list)} anime")
-
-        for anime in anime_list:
-            slug = anime['slug']
-
-            if series.find_one({"slug": slug}):
+class ScraperRunner:
+    def __init__(self):
+        self.scraper = AnimesaltScraper()
+    
+    def get_episode(self, url: str):
+        """Get episode details and streaming sources"""
+        return self.scraper.get_episode_sources(url)
+    
+    def get_series_episodes(self, url: str, season: int = None):
+        """Get all episodes of a series, optionally filtered by season"""
+        series_id = url.strip('/').split('/')[-1]
+        seasons = self.scraper.get_seasons(series_id)
+        all_eps = []
+        for s in seasons:
+            if season is not None and s["season_num"] != season:
                 continue
-
-            detail_soup = client.get(anime['url'])
-            if not detail_soup:
-                continue
-
-            details = parse_series_details(detail_soup, slug)
-            series.insert_one(details)
-            total_saved += 1
-            logger.info(f"✅ Saved: {details['title']}")
-
-            episode_list = parse_episodes(detail_soup, slug)
-            if episode_list:
-                episodes.insert_many(episode_list)
-                logger.info(f"   → {len(episode_list)} episodes")
-
-            time.sleep(3)
-
-        page += 1
-        time.sleep(5)
-
-    logger.info(f"🎉 Full Crawl Completed! Total Series: {total_saved}")
-    logger.info(f"Time Taken: {datetime.utcnow() - start_time}")
-
-if __name__ == "__main__":
-    run_full_scrape()
+            eps = self.scraper.get_episodes_by_season(s["post_id"], s["season_num"])
+            all_eps.extend(eps)
+        return all_eps
+    
+    def search(self, query: str):
+        """Search for anime"""
+        return self.scraper.search_anime(query)
