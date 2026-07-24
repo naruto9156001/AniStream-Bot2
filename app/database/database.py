@@ -16,7 +16,6 @@ class Database:
         self.episodes_col.create_index([("series_id", 1), ("season", 1), ("episode", 1)], unique=True)
     
     def upsert_series(self, data):
-        """Insert or update series"""
         data["last_updated"] = datetime.utcnow()
         self.series_col.update_one(
             {"series_id": data["series_id"]},
@@ -25,7 +24,6 @@ class Database:
         )
     
     def upsert_episode(self, data):
-        """Insert or update episode"""
         data["last_checked"] = datetime.utcnow()
         filter = {
             "series_id": data["series_id"],
